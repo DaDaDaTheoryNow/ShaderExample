@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">ShaderExample</string>
+    <string name="title_activity_open_gles20">OpenGLES20Activity</string>
+</resources>
