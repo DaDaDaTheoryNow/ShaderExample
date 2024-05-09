@@ -10,13 +10,13 @@ class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
 
     init {
         setEGLContextClientVersion(3)
-        renderer = MyGLRenderer()
+        renderer = MyGLRenderer(context)
         setRenderer(renderer)
 
         renderMode = RENDERMODE_CONTINUOUSLY
     }
 
-    private val scaleFactor = 180.0f / 320f
+    private val scaleFactor = 0.4f
     private var previousX: Float = 0f
     private var previousY: Float = 0f
 
@@ -27,22 +27,16 @@ class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
 
         when (event.action) {
             MotionEvent.ACTION_MOVE -> {
-                var dx: Float = x - previousX
-                var dy: Float = y - previousY
+                val dx: Float = x - previousX
+                val dy: Float = y - previousY
 
-                if (y > height / 2) {
-                    dx *= -1
-                }
+                renderer.angleX += dx * scaleFactor
+                renderer.angleY -= -dy * scaleFactor
+                renderer.angleY = renderer.angleY.coerceIn(-90.0f, 90.0f)
 
-                if (x < width / 2) {
-                    dy *= -1
-                }
-
-                renderer.angle += (dx + dy) * scaleFactor
                 requestRender()
             }
         }
-
 
         previousX = x
         previousY = y

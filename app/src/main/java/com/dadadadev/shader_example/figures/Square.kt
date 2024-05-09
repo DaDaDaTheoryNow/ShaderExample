@@ -1,63 +1,125 @@
 package com.dadadadev.shader_example.figures
 
+import android.content.Context
 import android.opengl.GLES31
+import android.opengl.Matrix
 import android.os.SystemClock
+import com.dadadadev.shader_example.R
 import com.dadadadev.shader_example.common.util.ShaderUtils
 import com.dadadadev.shader_example.loadShader
+import com.dadadadev.shader_example.loadTexture
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
-import java.nio.ShortBuffer
 
-private const val COORDS_PER_VERTEX = 3
-var squareCoords = floatArrayOf(
-    -0.5f,  0.5f, 0.0f,      // top left
-    -0.5f, -0.5f, 0.0f,      // bottom left
-    0.5f, -0.5f, 0.0f,      // bottom right
-    0.5f,  0.5f, 0.0f       // top right
+private val cubeCoords = floatArrayOf(
+    -0.5f, -0.5f, -0.5f,
+    0.5f, -0.5f, -0.5f,
+    0.5f,  0.5f, -0.5f,
+    0.5f,  0.5f, -0.5f,
+    -0.5f,  0.5f, -0.5f,
+    -0.5f, -0.5f, -0.5f,
+
+    -0.5f, -0.5f,  0.5f,
+    0.5f, -0.5f,  0.5f,
+    0.5f,  0.5f,  0.5f,
+    0.5f,  0.5f,  0.5f,
+    -0.5f,  0.5f,  0.5f,
+    -0.5f, -0.5f,  0.5f,
+
+    -0.5f,  0.5f,  0.5f,
+    -0.5f,  0.5f, -0.5f,
+    -0.5f, -0.5f, -0.5f,
+    -0.5f, -0.5f, -0.5f,
+    -0.5f, -0.5f,  0.5f,
+    -0.5f,  0.5f,  0.5f,
+
+    0.5f,  0.5f,  0.5f,
+    0.5f,  0.5f, -0.5f,
+    0.5f, -0.5f, -0.5f,
+    0.5f, -0.5f, -0.5f,
+    0.5f, -0.5f,  0.5f,
+    0.5f,  0.5f,  0.5f,
+
+    -0.5f, -0.5f, -0.5f,
+    0.5f, -0.5f, -0.5f,
+    0.5f, -0.5f,  0.5f,
+    0.5f, -0.5f,  0.5f,
+    -0.5f, -0.5f,  0.5f,
+    -0.5f, -0.5f, -0.5f,
+
+    -0.5f,  0.4f, -0.5f,
+    0.5f,  0.4f, -0.5f,
+    0.5f,  0.4f,  0.5f,
+    0.5f,  0.4f,  0.5f,
+    -0.5f,  0.4f,  0.5f,
+    -0.5f,  0.4f, -0.5f,
 )
 
+private val texCoords = floatArrayOf(
+    0.0f, 0.0f,
+    1.0f, 0.0f,
+    1.0f, 1.0f,
+    1.0f, 1.0f,
+    0.0f, 1.0f,
+    0.0f, 0.0f,
 
-private const val COLORS_PER_VERTEX = 3
-private val vertexColors = floatArrayOf(
-    1.0f, 0.0f, 0.0f,
-    0.0f, 1.0f, 0.0f,
-    0.0f, 0.0f, 1.0f,
-    1.0f, 1.0f, 1.0f
+    0.0f, 0.0f,
+    1.0f, 0.0f,
+    1.0f, 1.0f,
+    1.0f, 1.0f,
+    0.0f, 1.0f,
+    0.0f, 0.0f,
+
+    1.0f, 1.0f,
+    0.0f, 1.0f,
+    0.0f, 0.0f,
+    0.0f, 0.0f,
+    1.0f, 0.0f,
+    1.0f, 1.0f,
+
+    1.0f, 1.0f,
+    0.0f, 1.0f,
+    0.0f, 0.0f,
+    0.0f, 0.0f,
+    1.0f, 0.0f,
+    1.0f, 1.0f,
+
+    0.0f, 1.0f,
+    1.0f, 1.0f,
+    1.0f, 0.0f,
+    1.0f, 0.0f,
+    0.0f, 0.0f,
+    0.0f, 1.0f,
+
+    0.0f, 1.0f,
+    1.0f, 1.0f,
+    1.0f, 0.0f,
+    1.0f, 0.0f,
+    0.0f, 0.0f,
+    0.0f, 1.0f
 )
 
-class Square {
-    private val drawOrder = shortArrayOf(0, 1, 2, 0, 2, 3)
-
+class Square(context: Context) {
     private val vertexBuffer: FloatBuffer =
-        ByteBuffer.allocateDirect(squareCoords.size * 4).run {
+        ByteBuffer.allocateDirect(cubeCoords.size * 4).run {
             order(ByteOrder.nativeOrder())
             asFloatBuffer().apply {
-                put(squareCoords)
+                put(cubeCoords)
                 position(0)
             }
     }
 
-    private var colorBuffer: FloatBuffer =
-        ByteBuffer.allocateDirect(vertexColors.size * 4).run {
+    private val texCoordsBuffer: FloatBuffer =
+        ByteBuffer.allocateDirect(texCoords.size * 4).run {
             order(ByteOrder.nativeOrder())
-
             asFloatBuffer().apply {
-                put(vertexColors)
+                put(texCoords)
                 position(0)
             }
         }
 
-    private val drawListBuffer: ShortBuffer =
-        ByteBuffer.allocateDirect(squareCoords.size * 4).run {
-            order(ByteOrder.nativeOrder())
-            asShortBuffer().apply {
-                put(drawOrder)
-                position(0)
-            }
-        }
-
-    private var mProgram: Int;
+    private var mProgram: Int
 
     private val vertexShaderCode = ShaderUtils.getShaderSource("shaders/square/shader.vert")
     private val fragmentShaderCode = ShaderUtils.getShaderSource("shaders/square/shader.frag")
@@ -73,22 +135,48 @@ class Square {
         }
     }
 
-    private val vertexStride: Int = COORDS_PER_VERTEX * 4
-    private val colorStride: Int = COLORS_PER_VERTEX * 4
+
+    private val textureHandle = loadTexture(context, R.drawable.cat)
+    private val secondTextureHandle = loadTexture(context, R.drawable.soil)
 
     fun draw(mvpMatrix: FloatArray) {
         GLES31.glUseProgram(mProgram)
+        Matrix.scaleM(mvpMatrix, 0, 0.5f, 0.5f, 0.5f)
 
         val positionHandle = GLES31.glGetAttribLocation(mProgram, "position").also { positionHandle ->
             GLES31.glEnableVertexAttribArray(positionHandle)
             GLES31.glVertexAttribPointer(
                 positionHandle,
-                COORDS_PER_VERTEX,
+                3,
                 GLES31.GL_FLOAT,
                 false,
-                vertexStride,
+                3*4,
                 vertexBuffer
             )
+        }
+
+        val texCoordHandle = GLES31.glGetAttribLocation(mProgram, "texCoord").also { texCoordHandle ->
+            GLES31.glEnableVertexAttribArray(texCoordHandle)
+            GLES31.glVertexAttribPointer(
+                texCoordHandle,
+                2,
+                GLES31.GL_FLOAT,
+                false,
+                2*4,
+                texCoordsBuffer
+            )
+        }
+
+        GLES31.glGetUniformLocation(mProgram, "texture").also { textureUniformHandle ->
+            GLES31.glActiveTexture(GLES31.GL_TEXTURE0)
+            GLES31.glBindTexture(GLES31.GL_TEXTURE_2D, textureHandle)
+            GLES31.glUniform1i(textureUniformHandle, 0)
+        }
+
+        GLES31.glGetUniformLocation(mProgram, "secondTexture").also { secondTextureUniformHandle ->
+            GLES31.glActiveTexture(GLES31.GL_TEXTURE1)
+            GLES31.glBindTexture(GLES31.GL_TEXTURE_2D, secondTextureHandle)
+            GLES31.glUniform1i(secondTextureUniformHandle, 1)
         }
 
         GLES31.glGetUniformLocation(mProgram, "uMVPMatrix").also { vPMatrixHandle ->
@@ -100,21 +188,9 @@ class Square {
             GLES31.glUniform1f(iTimeHandle, currentTime.toFloat())
         }
 
-        val vertexColorHandle = GLES31.glGetAttribLocation(mProgram, "vertexColor").also { vertexColorHandle ->
-            GLES31.glEnableVertexAttribArray(vertexColorHandle)
-            GLES31.glVertexAttribPointer(
-                vertexColorHandle,
-                COLORS_PER_VERTEX,
-                GLES31.GL_FLOAT,
-                false,
-                colorStride,
-                colorBuffer
-            )
-        }
-
-        GLES31.glDrawElements(GLES31.GL_TRIANGLES, drawOrder.size, GLES31.GL_UNSIGNED_SHORT, drawListBuffer)
+        GLES31.glDrawArrays(GLES31.GL_TRIANGLES, 0, 36)
 
         GLES31.glDisableVertexAttribArray(positionHandle)
-        GLES31.glDisableVertexAttribArray(vertexColorHandle)
+        GLES31.glDisableVertexAttribArray(texCoordHandle)
     }
 }
